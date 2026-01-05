@@ -1,1 +1,104 @@
 
+:root {
+  --primary-color: #111;
+  --secondary-color: #f5f5f5;
+}
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  padding-top: 70px;
+  background-color: var(--secondary-color);
+}
+
+/* HERO */
+.hero {
+  height: 80vh;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+              url('https://images.unsplash.com/photo-1521334884684-d80222895322');
+  background-size: cover;
+  background-position: center;
+  color: white;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: 600;
+}
+
+/* SECCIONES */
+.section-title {
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+/* FILTROS */
+.filter-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+}
+
+/* PRODUCTOS */
+.product-card {
+  border: none;
+  border-radius: 15px;
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+.price {
+  font-weight: 600;
+}
+
+/* ASISTENTE */
+.assistant {
+  background-color: white;
+  padding: 4rem 0;
+}
+
+.chatbox {
+  max-width: 500px;
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 1rem;
+}
+
+.chat-messages {
+  min-height: 200px;
+  margin-bottom: 1rem;
+}
+
+.bot-message {
+  background: white;
+  padding: 0.7rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.chat-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* CARRITO */
+.cart-badge {
+  position: absolute;
+  top: 0;
+  right: -8px;
+  font-size: 0.7rem;
+}
+
+/* FOOTER */
+.footer {
+  background: var(--primary-color);
+  color: white;
+  padding: 1rem 0;
+  margin-top: 3rem;
+}
+

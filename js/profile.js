@@ -23,13 +23,42 @@ export function getUserPreferences() {
   }
 }
 
-export function applyPreferencesToFilters(applyFilters) {
-  if (typeof applyFilters !== 'function') {
-    console.error('applyFilters no es una función válida:', applyFilters);
-    return;
-  }
+export function applyPreferencesToFilters() {
   const preferencias = getUserPreferences();
   if (preferencias) {
-    applyFilters(preferencias);
+    // Aplicar las preferencias a los filtros del DOM
+    const categoriaSelect = document.querySelector('.filter-box select:nth-child(2)');
+    const colorSelect = document.querySelector('.filter-box select:nth-child(4)');
+    const tallaSelect = document.querySelector('.filter-box select:nth-child(6)');
+
+    if (categoriaSelect && preferencias.categoria) categoriaSelect.value = preferencias.categoria;
+    if (colorSelect && preferencias.color) colorSelect.value = preferencias.color;
+    if (tallaSelect && preferencias.talla) tallaSelect.value = preferencias.talla;
   }
 }
+
+export function setupFilterListeners() {
+  const categoriaSelect = document.querySelector('.filter-box select:nth-child(2)');
+  const colorSelect = document.querySelector('.filter-box select:nth-child(4)');
+  const tallaSelect = document.querySelector('.filter-box select:nth-child(6)');
+
+  if (categoriaSelect && colorSelect && tallaSelect) {
+    const savePreferences = () => {
+      const preferencias = {
+        categoria: categoriaSelect.value,
+        color: colorSelect.value,
+        talla: tallaSelect.value,
+      };
+      guardarPreferencias(preferencias);
+    };
+
+    categoriaSelect.addEventListener('change', savePreferences);
+    colorSelect.addEventListener('change', savePreferences);
+    tallaSelect.addEventListener('change', savePreferences);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyPreferencesToFilters();
+  setupFilterListeners();
+});

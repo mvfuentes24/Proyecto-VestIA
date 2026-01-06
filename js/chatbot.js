@@ -1,114 +1,167 @@
-// js/chatbot.js
+import { GEMINI_API_KEY, GEMINI_MODEL } from "./config.js";
+import { guardarPreferencias } from "./profile.js";
 
-import { getUserPreferences, guardarPreferencias } from './profile.js';
-import { GEMINI_API_KEY } from './config.js';
+document.addEventListener("DOMContentLoaded", () => {
+  const chatMessages = document.getElementById("chatMessages");
+  const input = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const imageBtn = document.getElementById("imageBtn");
+  const imageUpload = document.getElementById("imageUpload");
 
-const chatContainer = document.getElementById('chat-container');
-const inputField = document.getElementById('chat-input');
-const sendButton = document.getElementById('send-button');
+  // Mostrar mensajes en el chat
+  function addMessage(text, sender = "user") {
+    const msg = document.createElement("p");
+    msg.className = sender === "user" ? "user-message" : "bot-message";
+    msg.textContent = text;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 
-let conversationHistory = [];
+  // Detectar palabras clave y aplicar filtros
+  function detectarFiltros(texto) {
+    const categorias = {
+      blusa: "tops",
+      blusas: "tops",
+      pantalón: "pants",
+      pantalones: "pants",
+      vestido: "dresses",
+      vestidos: "dresses",
+      accesorio: "accessories",
+      accesorios: "accessories"
+    };
 
-/**
- * Muestra un mensaje en el chat
- */
-function displayMessage(text, sender = 'bot') {
-  const message = document.createElement('div');
-  message.className = `message ${sender}`;
-  message.innerText = text;
-  chatContainer.appendChild(message);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
+    const colores = {
+      negro: "black",
+      blanco: "white",
+      beige: "beige"
+    };
 
-/**
- * Envía la conversación a Gemini y obtiene respuesta
- */
-async function sendToGemini(userMessage) {
-  conversationHistory.push({ role: 'user', content: userMessage });
+    const tallas = ["S", "M", "L"];
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta2/models/gemini-1.5-flash:generateText?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: conversationHistory,
-        }),
-      }
-    );
+    let categoria = null;
+    let color = null;
+    let talla = null;
 
-    if (!response.ok) {
-      throw new Error('Error en la solicitud a Gemini');
+    // Buscar coincidencias
+    for (const [palabra, valor] of Object.entries(categorias)) {
+      if (texto.toLowerCase().includes(palabra)) categoria = valor;
+    }
+    for (const [palabra, valor] of Object.entries(colores)) {
+      if (texto.toLowerCase().includes(palabra)) color = valor;
+    }
+    for (const t of tallas) {
+      if (texto.toUpperCase().includes(t)) talla = t;
     }
 
-    const data = await response.json();
-    const botReply = data.candidates?.[0]?.content || 'Lo siento, no entendí eso.';
-    conversationHistory.push({ role: 'bot', content: botReply });
-
-    displayMessage(botReply, 'bot');
-    handleRecommendation(botReply);
-  } catch (error) {
-    console.error('Error al comunicarse con Gemini:', error);
-    displayMessage('Hubo un problema al conectar con el asistente. Por favor, intenta nuevamente.', 'bot');
+    if (categoria || color || talla) {
+      guardarPreferencias({ categoria, color, talla });
+      addMessage(
+        `He aplicado tus filtros: ${categoria || "todos"}, ${color || "todos"}, ${talla || "todas"}`,
+        "bot"
+      );
+    }
   }
-}
 
-/**
- * Detecta recomendaciones y crea botón para aplicar filtros
- */
-function handleRecommendation(text) {
-  const match = text.match(/Recomiendo.*?: (.*)/i);
-  if (match) {
-    const filters = match[1];
+  // Llamada a la API REST de Gemini
+  async function sendToGemini(message) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `Eres VestIA, un estilista virtual. 
+                    El usuario dice: "${message}". 
+                    Responde con sugerencias de moda y menciona productos del catálogo (blusas, pantalones, vestidos, accesorios).`
+                  }
+                ]
+              }
+            ]
+          })
+        }
+      );
 
-    // Eliminar botones anteriores
-    const existingButton = document.querySelector('.recommendation-button');
-    if (existingButton) existingButton.remove();
+      const data = await response.json();
+      const reply =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No entendí tu mensaje.";
+      addMessage(reply, "bot");
 
-    const button = document.createElement('button');
-    button.innerText = 'Ver recomendaciones';
-    button.className = 'btn btn-primary mt-2 recommendation-button';
-    button.onclick = () => applyFiltersFromChat(filters);
-    chatContainer.appendChild(button);
+      // Detectar filtros en el mensaje
+      detectarFiltros(message);
+    } catch (error) {
+      console.error(error);
+      addMessage("Error al conectar con el asistente.", "bot");
+    }
   }
-}
 
-/**
- * Aplica filtros sugeridos por el chatbot
- */
-function applyFiltersFromChat(filterText) {
-  const preferences = parsePreferences(filterText);
-  guardarPreferencias(preferences);
+  // Botón enviar texto
+  sendBtn.addEventListener("click", () => {
+    const text = input.value.trim();
+    if (!text) return;
+    addMessage(text, "user");
+    input.value = "";
+    sendToGemini(text);
+  });
 
-  // Aplicar filtros directamente en la página actual
-  const categoriaSelect = document.querySelector('.filter-box select:nth-child(2)');
-  const colorSelect = document.querySelector('.filter-box select:nth-child(4)');
-  const tallaSelect = document.querySelector('.filter-box select:nth-child(6)');
+  // Botón abrir selector de imagen
+  imageBtn.addEventListener("click", () => {
+    imageUpload.click();
+  });
 
-  if (categoriaSelect && preferences.categoria) categoriaSelect.value = preferences.categoria;
-  if (colorSelect && preferences.color) colorSelect.value = preferences.color;
-  if (tallaSelect && preferences.talla) tallaSelect.value = preferences.talla;
+  // Subir imagen y analizar
+  imageUpload.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  displayMessage('Filtros aplicados: ' + JSON.stringify(preferences), 'bot');
-}
+    addMessage("📷 Imagen subida, analizando...", "user");
 
-/**
- * Extrae preferencias desde texto
- */
-function parsePreferences(text) {
-  const categoria = text.match(/categoría (\w+)/i)?.[1] || '';
-  const color = text.match(/color (\w+)/i)?.[1] || '';
-  const talla = text.match(/talla (\w+)/i)?.[1] || '';
-  return { categoria, color, talla };
-}
+    try {
+      const base64 = await toBase64(file);
 
-// Evento de envío
-sendButton.addEventListener('click', () => {
-  const userMessage = inputField.value.trim();
-  if (userMessage) {
-    displayMessage(userMessage, 'user');
-    sendToGemini(userMessage);
-    inputField.value = '';
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: "Analiza esta prenda y sugiere combinaciones dentro del catálogo VestIA." },
+                  { inlineData: { mimeType: file.type, data: base64 } }
+                ]
+              }
+            ]
+          })
+        }
+      );
+
+      const data = await response.json();
+      const reply =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No se pudo analizar la imagen.";
+      addMessage(reply, "bot");
+    } catch (error) {
+      console.error(error);
+      addMessage("Error al analizar la imagen.", "bot");
+    }
+  });
+
+  // Convertir imagen a Base64
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 });

@@ -13,12 +13,13 @@ const clothingCategory = [
   'sunglasses'
 ];
 
+
 export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '' } = {}) {
   try {
     if (!q && !category) {
       return await fetchClothingOnly({ limit, skip });
     }
-
+//muestra los productos por busqueda o categoria
     let endpoint;
     if (q) {
       endpoint = `${DUMMYJSON_BASE}/products/search?q=${encodeURIComponent(q)}&limit=100&skip=0`;
@@ -41,9 +42,10 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
   } catch (err) {
     console.error(err);
     return { products: [], total: 0, skip, limit };
-  }
+  } 
 }
 
+//muestra todos los productos
 async function fetchClothingOnly({ limit, skip }) {
   const requests = clothingCategory.map(cat =>
     fetch(`${DUMMYJSON_BASE}/products/category/${cat}?limit=100`)

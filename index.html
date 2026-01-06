@@ -64,20 +64,19 @@
         <div class="filter-box">
           <h5>Filtros</h5>
 
-          <label class="form-label">Categoría (solo ropa)</label>
+          <label class="form-label">Ropa</label>
           <select id="categorySelect" class="form-select mb-3">
             <option value="">Toda la ropa</option>
-            <option value="tops">Tops</option>
+            <option value="tops">Blusas</option>
             <option value="mens-shirts">Camisas hombre</option>
             <option value="womens-dresses">Vestidos</option>
-            <option value="mens-shoes">Zapatos hombre</option>
-            <option value="womens-shoes">Zapatos mujer</option>
-            <option value="mens-watches">Reloj hombre</option>
-            <option value="womens-watches">Reloj mujer</option>
+            <option value="mens-shoes">Calzado hombre</option>
+            <option value="womens-shoes">Calzado mujer</option>
             <option value="womens-bags">Bolsos</option>
             <option value="womens-jewellery">Joyería</option>
             <option value="sunglasses">Gafas de sol</option>
-            
+            <option value="mens-watches">Reloj hombre</option>
+            <option value="womens-watches">Reloj mujer</option>
           </select>
 
           <label class="form-label">Color</label>
@@ -86,14 +85,41 @@
             <option value="black">Negro</option>
             <option value="white">Blanco</option>
             <option value="beige">Beige</option>
+            <option value="blue">Azul</option>
+            <option value="red">Rojo</option>
+            <option value="green">Verde</option>
           </select>
 
           <label class="form-label">Talla</label>
-          <select id="sizeSelect" class="form-select">
+          <select id="sizeSelect" class="form-select mb-3">
             <option value="">Todas</option>
+            <option value="XS">XS</option>
             <option value="S">S</option>
             <option value="M">M</option>
             <option value="L">L</option>
+            <option value="XL">XL</option>
+          </select>
+
+          <label class="form-label">Rango de precios</label>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between range-labels-top">
+              <span id="priceRangeMinLabel">$5</span>
+              <span id="priceRangeMaxLabel">$60000</span>
+            </div>
+            <div class="dual-range">
+              <input type="range" class="form-range" id="priceRangeMin" min="5" max="60000" step="5" value="5" aria-label="Precio mínimo">
+              <input type="range" class="form-range" id="priceRangeMax" min="5" max="60000" step="5" value="60000" aria-label="Precio máximo">
+            </div>
+          </div>
+
+
+          <label class="form-label">Ocasión</label>
+          <select id="occasionSelect" class="form-select">
+            <option value="">Todas</option>
+            <option value="casual">Casual</option>
+            <option value="formal">Formal</option>
+            <option value="deportivo">Deportivo</option>
+            <option value="fiesta">Fiesta</option>
           </select>
         </div>
       </div>

@@ -38,6 +38,11 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
       return { products, total: filtered.length, skip, limit };
     }
 
+    if (category) {
+      const filtered = (data.products || []).filter(p => p.category === category);
+      return { products: filtered, total: filtered.length, skip, limit };
+    }
+
     return { products: data.products, total: data.total, skip, limit };
   } catch (err) {
     console.error(err);

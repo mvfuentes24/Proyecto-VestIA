@@ -39,8 +39,8 @@ function hasKeyWord(text, words) {
 	return words.some(w => text.includes(w));
 }
 
-//complementa los productos con atributos adicionales
-export function completeProductAttributes(products) {
+// complementa los productos con atributos adicionales
+export function decorateProducts(products) {
 	return (products || []).map(p => ({
 		...p,
 		color: p.color || pickFromCategories(COLOR, p.id + 1),
@@ -128,4 +128,3 @@ export function getFilters() {
 		priceMax: maxOut,
 	};
 }
-

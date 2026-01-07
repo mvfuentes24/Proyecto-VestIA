@@ -85,9 +85,9 @@ body {
   color: #6c757d;
 }
 
-/* Separación visual de los números del slider */
+
 .dual-range .range-labels {
-  margin-top: 24px; /* separar aún más las etiquetas del slider */
+  margin-top: 24px; 
 }
 
 /* PRODUCTOS */

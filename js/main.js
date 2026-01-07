@@ -5,9 +5,23 @@ let currentPage = 1;
 const perPage = 12;
 let currentCategory = '';
 let cachedProducts = [];
+let currentQuery = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initFilters(handleFiltersChange);
+  // conectar barra de búsqueda en navbar
+  const searchForm = document.getElementById('navSearchForm');
+  const searchInput = document.getElementById('navSearchInput');
+  if (searchForm && searchInput) {
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentQuery = (searchInput.value || '').trim();
+      currentPage = 1;
+      showLoadingGrid();
+      await loadData();
+      renderWithFilters();
+    });
+  }
   showLoadingGrid();
   await loadData();
   renderWithFilters();
@@ -34,7 +48,7 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
 }
 
 async function loadData() {
-  const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory });
+  const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
   cachedProducts = decorateProducts(data.products);
 }
 

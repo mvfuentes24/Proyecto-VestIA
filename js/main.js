@@ -1,5 +1,6 @@
 import { fetchProducts } from './products.js';
 import { initFilters, getFilters, applyFilters, decorateProducts } from './filters.js';
+import { addToCart, initCart } from './cart.js';
 
 let currentPage = 1;
 const perPage = 12;
@@ -8,6 +9,8 @@ let cachedProducts = [];
 let currentQuery = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // inicializar carrito (persistencia + fallback si API no está disponible)
+  await initCart();
   initFilters(handleFiltersChange);
   // conectar barra de búsqueda en navbar
   const searchForm = document.getElementById('navSearchForm');
@@ -101,6 +104,9 @@ function renderProducts(products) {
         </div>
       </div>
     `;
+    // wire del botón para agregar al carrito
+    const btn = card.querySelector('button');
+    btn && btn.addEventListener('click', () => addToCart(p));
     grid.appendChild(card);
   });
 }

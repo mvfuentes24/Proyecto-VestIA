@@ -21,7 +21,7 @@ body {
 .hero {
   height: 80vh;
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
-              url('https://images.unsplash.com/photo-1521334884684-d80222895322');
+              url('../images/navbarfoto.jpg');
   background-size: cover;
   background-position: center;
   color: white;
@@ -141,6 +141,37 @@ body {
   top: 0;
   right: -8px;
   font-size: 0.7rem;
+}
+
+/* CARRITO SECCIÓN SEPARADA */
+.cart-section {
+  background: #f0f2f5;
+  padding: 4rem 0;
+  margin-top: 3rem;
+  border-top: 1px solid #e6e6e6;
+}
+.cart-panel {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 760px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+}
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.cart-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e6e6e6;
+}
+.cart-item:last-child {
+  border-bottom: none;
+}
+.cart-empty {
+  color: #6c757d;
+  padding: 0.5rem 0;
 }
 
 /* FOOTER */

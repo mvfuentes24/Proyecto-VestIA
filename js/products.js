@@ -1,5 +1,4 @@
 import { DUMMYJSON_BASE } from './config.js';
-
 const clothingCategory = [
   'tops',
   'mens-shirts',
@@ -14,12 +13,12 @@ const clothingCategory = [
 ];
 
 
-export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '' } = {}) {
+export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '', talla = '' } = {}) {
   try {
     if (!q && !category) {
       return await fetchClothingOnly({ limit, skip });
     }
-//muestra los productos por busqueda o categoria
+
     let endpoint;
     if (q) {
       endpoint = `${DUMMYJSON_BASE}/products/search?q=${encodeURIComponent(q)}&limit=100&skip=0`;
@@ -32,13 +31,18 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
     if (!res.ok) throw new Error('Error al obtener productos');
     const data = await res.json();
 
+    let products = data.products || [];
+
     if (q) {
-      const filtered = (data.products || []).filter(p => isClothingCategory(p.category));
-      const products = filtered.slice(skip, skip + limit);
-      return { products, total: filtered.length, skip, limit };
+      const filtered = products.filter(p => isClothingCategory(p.category));
+      products = filtered.slice(skip, skip + limit);
     }
 
-    return { products: data.products, total: data.total, skip, limit };
+    if (talla) {
+      products = products.filter(p => p.size?.toUpperCase() === talla);
+    }
+
+    return { products, total: products.length, skip, limit };
   } catch (err) {
     console.error(err);
     return { products: [], total: 0, skip, limit };

@@ -5,9 +5,23 @@ let currentPage = 1;
 const perPage = 12;
 let currentCategory = '';
 let cachedProducts = [];
+let currentQuery = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initFilters(handleFiltersChange);
+  // conectar barra de búsqueda en navbar
+  const searchForm = document.getElementById('navSearchForm');
+  const searchInput = document.getElementById('navSearchInput');
+  if (searchForm && searchInput) {
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentQuery = (searchInput.value || '').trim();
+      currentPage = 1;
+      showLoadingGrid();
+      await loadData();
+      renderWithFilters();
+    });
+  }
   showLoadingGrid();
   await loadData();
   renderWithFilters();
@@ -26,7 +40,6 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
     return;
   }
 
-  // Sólo filtros en cliente: mostrar cargando breve y debounced render
   showLoadingGrid();
   if (renderTimer) clearTimeout(renderTimer);
   renderTimer = setTimeout(() => {
@@ -35,7 +48,7 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
 }
 
 async function loadData() {
-  const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory });
+  const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
   cachedProducts = decorateProducts(data.products);
 }
 
@@ -74,13 +87,14 @@ function renderProducts(products) {
   products.forEach(p => {
     const card = document.createElement('div');
     card.className = 'col-md-4';
+    const sizeLine = p.size ? `<p class="small text-muted mb-1">Talla: ${p.size}</p>` : '';
     card.innerHTML = `
       <div class="card h-100 shadow-sm">
         <img src="${p.thumbnail}" class="card-img-top" alt="${p.title}">
         <div class="card-body">
           <h5 class="card-title">${p.title}</h5>
           <p class="text-muted">Marca: VestIA</p>
-          <p class="small text-muted mb-1">Talla: ${p.size || 'Única'}</p>
+          ${sizeLine}
           <p class="card-text">${p.description}</p>
           <p class="fw-bold">$${p.price}</p>
           <button class="btn btn-primary btn-sm">Agregar al carrito</button>

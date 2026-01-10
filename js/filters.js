@@ -1,31 +1,60 @@
 
-const COLOR_POOL = ['black', 'white', 'beige', 'blue', 'red', 'green'];
-const SIZE_POOL = ['XS', 'S', 'M', 'L', 'XL'];
-const OCCASION_POOL = ['casual', 'formal', 'deportivo', 'fiesta'];
+const COLOR = ['black', 'white', 'beige', 'blue', 'red', 'green'];
+const SIZE = ['XS', 'S', 'M', 'L', 'XL'];
+const OCCASION = ['casual', 'formal', 'deportivo', 'fiesta'];
+const SCATEGORIES = ['tops', 'mens-shirts', 'womens-dresses', 'mens-shoes', 'womens-shoes'];
 
-function pickFromPool(pool, seed) {
-	return pool[seed % pool.length];
+const CASUAL_WORDS = ['casual', 'daily', 'everyday', 'relaxed', 'weekend', 'basic', 't-shirt','fashionable','style'];
+const SPORT_WORDS = ['sport', 'sports', 'sneaker', 'running', 'gym', 'athletic', 'jog', 'runner', 'deportivo', 'trail', 'tenis'];
+const FORMAL_WORDS = ['formal', 'office', 'business', 'blazer', 'oxford', 'derby', 'heel', 'heels', 'elegant', 'classic', 'special'];
+const PARTY_WORDS = ['party', 'cocktail', 'evening', 'fiesta', 'night', 'club', 'sparkle', 'shiny', 'sequin'];
+
+//para asignar valores(color,talla) a productos
+function pickFromCategories(option, numeroReferencia) {
+	return option[numeroReferencia % option.length];
 }
 
-function pickOccasion(category, seed) {
-	if (category.includes('shoes') || category.includes('sneakers')) return 'deportivo';
+function pickOccasion(product, numeroReferencia) {
+	const category = (product.category || '').toLowerCase();
+	const text = `${product.title || ''} ${product.description || ''}`.toLowerCase();
+
+	// filtra segun las keywords
+	if (hasKeyWord(text, SPORT_WORDS)) return 'deportivo';
+	if (hasKeyWord(text, PARTY_WORDS)) return 'fiesta';
+	if (hasKeyWord(text, FORMAL_WORDS)) return 'formal';
+	if (hasKeyWord(text, CASUAL_WORDS)) return 'casual';
+
+	// filtra por categoria 
+	if (category.includes('dresses')) return 'fiesta';
+	if (category.includes('shoes') || category.includes('sneaker')) return 'deportivo';
 	if (category.includes('watches') || category.includes('jewellery')) return 'formal';
-	if (category.includes('bags')) return 'casual';
-	return pickFromPool(OCCASION_POOL, seed);
+	if (category.includes('bags') || category.includes('sunglasses')) return 'casual';
+	if (category.includes('tops') || category.includes('shirts')) return 'casual';
+
+    //por defecto 
+	return pickFromPool(OCCASION, numeroReferencia);
 }
 
+function hasKeyWord(text, words) {
+	return words.some(w => text.includes(w));
+}
+
+// complementa los productos con atributos adicionales
 export function decorateProducts(products) {
 	return (products || []).map(p => ({
 		...p,
-		color: p.color || pickFromPool(COLOR_POOL, p.id + 1),
-		size: p.size || pickFromPool(SIZE_POOL, p.id + 2),
-		occasion: p.occasion || pickOccasion(p.category || '', p.id + 3),
+		color: p.color || pickFromCategories(COLOR, p.id + 1),
+		size: SCATEGORIES.includes((p.category || '').toLowerCase())
+		  ? (p.size || pickFromCategories(SIZE, p.id + 2))
+		  : null,
+		occasion: p.occasion || pickOccasion(p, p.id + 3),
 	}));
 }
 
 export function applyFilters(products, filters) {
-	const { color, size, priceMin, priceMax, occasion } = filters;
+	const { category, color, size, priceMin, priceMax, occasion } = filters;
 	return (products || []).filter(p => {
+		if (category && p.category !== category) return false;
 		if (color && p.color !== color) return false;
 		if (size && p.size !== size) return false;
 		if (occasion && p.occasion !== occasion) return false;
@@ -46,23 +75,19 @@ export function initFilters(onChange) {
 	const priceMaxLabel = document.getElementById('priceRangeMaxLabel');
 	const occasionSelect = document.getElementById('occasionSelect');
 
-	// categoría dispara recarga remota; el resto sólo filtra en cliente
 	categorySelect && categorySelect.addEventListener('change', () => onChange(categorySelect?.value || ''));
 	[colorSelect, sizeSelect, occasionSelect].forEach(el => el && el.addEventListener('change', () => onChange(categorySelect?.value || '', { filtersOnly: true })));
 
-	// actualizar etiquetas y notificar cambios cuando se mueven los sliders
 	function updatePriceLabels() {
 		if (priceMinLabel) priceMinLabel.textContent = `$${priceMin?.value ?? ''}`;
 		if (priceMaxLabel) priceMaxLabel.textContent = `$${priceMax?.value ?? ''}`;
 	}
 
 	[priceMin, priceMax].forEach(el => el && el.addEventListener('input', () => {
-		// mantener coherencia: si min supera max, ajustamos el otro extremo
 		const minVal = parseFloat(priceMin?.value ?? '0');
 		const maxVal = parseFloat(priceMax?.value ?? '0');
 		if (Number.isFinite(minVal) && Number.isFinite(maxVal)) {
 			if (minVal > maxVal) {
-				// decidir cuál se movió: si el target es min, subimos max; si es max, bajamos min
 				if (el === priceMin) {
 					priceMax.value = String(minVal);
 				} else {
@@ -74,7 +99,6 @@ export function initFilters(onChange) {
 		onChange(categorySelect?.value || '', { filtersOnly: true });
 	}));
 
-	// inicializar etiquetas al cargar
 	updatePriceLabels();
 }
 
@@ -86,7 +110,7 @@ export function getFilters() {
 	const priceMinValue = parseFloat(document.getElementById('priceRangeMin')?.value);
 	const priceMaxValue = parseFloat(document.getElementById('priceRangeMax')?.value);
 
-	// asegurar orden correcto
+	// asegurar orden correcto en el slide de precio
 	let minOut = Number.isFinite(priceMinValue) ? priceMinValue : null;
 	let maxOut = Number.isFinite(priceMaxValue) ? priceMaxValue : null;
 	if (minOut != null && maxOut != null) {
@@ -104,4 +128,3 @@ export function getFilters() {
 		priceMax: maxOut,
 	};
 }
-

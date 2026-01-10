@@ -34,12 +34,14 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
     let products = data.products || [];
 
     if (q) {
-      const filtered = products.filter(p => isClothingCategory(p.category));
-      products = filtered.slice(skip, skip + limit);
+      const filtered = (data.products || []).filter(p => isClothingCategory(p.category));
+      const products = filtered.slice(skip, skip + limit);
+      return { products, total: filtered.length, skip, limit };
     }
 
-    if (talla) {
-      products = products.filter(p => p.size?.toUpperCase() === talla);
+    if (category) {
+      const filtered = (data.products || []).filter(p => p.category === category);
+      return { products: filtered, total: filtered.length, skip, limit };
     }
 
     return { products, total: products.length, skip, limit };

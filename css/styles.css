@@ -45,10 +45,10 @@ body {
   border-radius: 10px;
 }
 
-/* Dual range (dos sliders superpuestos en una sola línea) */
+
 .dual-range {
   position: relative;
-  height: 64px; /* más alto para separar del texto */
+  height: 64px; 
 }
 .dual-range input[type="range"] {
   position: absolute;
@@ -85,9 +85,9 @@ body {
   color: #6c757d;
 }
 
-/* Separación visual de los números del slider */
+
 .dual-range .range-labels {
-  margin-top: 24px; /* separar aún más las etiquetas del slider */
+  margin-top: 24px; 
 }
 
 /* PRODUCTOS */

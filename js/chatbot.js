@@ -1,69 +1,101 @@
 import { GEMINI_API_KEY, GEMINI_MODEL } from "./config.js";
 import { guardarPreferencias } from "./profile.js";
+import { fetchProducts } from "./products.js"; //
+import { decorateProducts } from "./filters.js"; //
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const chatMessages = document.getElementById("chatMessages");
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const imageBtn = document.getElementById("imageBtn");
   const imageUpload = document.getElementById("imageUpload");
 
-  // Mostrar mensajes en el chat
+  // Almacenamos los objetos completos de productos aquí para acceder a sus imágenes
+  let productosGlobales = [];
+  let catalogoContexto = "";
+
+  // 1. Cargar y preparar el catálogo
+  async function cargarCatalogoParaIA() {
+    try {
+      const data = await fetchProducts({ limit: 100 }); // Traemos suficientes productos
+      productosGlobales = decorateProducts(data.products); // Decoramos con color/ocasión
+
+      // Creamos el texto que leerá la IA
+      catalogoContexto = productosGlobales.map(p => 
+        `- ID: ${p.id} | Nombre: ${p.title} | Cat: ${p.category} | Precio: $${p.price} | Color: ${p.color} | Estilo: ${p.occasion} | Talla: ${p.size }`
+      ).join("\n"); // Agregamos "| Talla: ${p.size}" al final
+
+      console.log("Catálogo e imágenes cargados en memoria.");
+    } catch (error) {
+      console.error("Error cargando contexto:", error);
+    }
+  }
+
+  await cargarCatalogoParaIA();
+
+  // 2. Función para convertir IDs en Tarjetas HTML con imagen
+  function formatearRespuestaConProductos(texto) {
+    // Expresión regular para encontrar [PRODUCT_ID: 123]
+    const regex = /\[PRODUCT_ID:\s*(\d+)\]/g;
+    
+    // Reemplaza el código por una tarjeta HTML
+    return texto.replace(regex, (match, id) => {
+      const producto = productosGlobales.find(p => p.id == id);
+      
+      if (!producto) return ""; // Si no encuentra el ID, no muestra nada
+
+      return `
+        <div class="chat-product-card" style="display: flex; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; align-items: center; border: 1px solid #ddd;">
+          <img src="${producto.thumbnail}" alt="${producto.title}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+          <div style="text-align: left;">
+            <strong style="font-size: 0.9rem; display: block;">${producto.title}</strong>
+            <span style="font-size: 0.85rem; color: #555;">$${producto.price} - ${producto.color}</span>
+            <a href="#catalogo" class="btn btn-sm btn-dark mt-1" style="font-size: 0.7rem; padding: 2px 8px;">Ver en catálogo</a>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // 3. Mostrar mensajes (ahora soporta HTML)
   function addMessage(text, sender = "user") {
-    const msg = document.createElement("p");
+    const msg = document.createElement("div"); // Usamos div para permitir estructura interna
     msg.className = sender === "user" ? "user-message" : "bot-message";
-    msg.textContent = text;
+    
+    if (sender === "bot") {
+      // Si es el bot, procesamos el HTML de los productos
+      msg.innerHTML = formatearRespuestaConProductos(text);
+    } else {
+      msg.textContent = text;
+    }
+    
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // Detectar palabras clave y aplicar filtros
   function detectarFiltros(texto) {
-    const categorias = {
-      blusa: "tops",
-      blusas: "tops",
-      pantalón: "pants",
-      pantalones: "pants",
-      vestido: "dresses",
-      vestidos: "dresses",
-      accesorio: "accessories",
-      accesorios: "accessories"
-    };
-
-    const colores = {
-      negro: "black",
-      blanco: "white",
-      beige: "beige"
-    };
-
-    const tallas = ["S", "M", "L"];
-
-    let categoria = null;
-    let color = null;
-    let talla = null;
-
-    // Buscar coincidencias
+     // (Mantenemos la misma lógica de filtros que tenías antes)
+    const categorias = { blusa: "tops", blusas: "tops", pantalón: "pants", pantalones: "pants", vestido: "dresses", vestidos: "dresses", accesorio: "accessories", accesorios: "accessories" };
+    const colores = { negro: "black", blanco: "white", beige: "beige", azul: "blue", rojo: "red" };
+    
+    let categoria = null, color = null;
+    
     for (const [palabra, valor] of Object.entries(categorias)) {
       if (texto.toLowerCase().includes(palabra)) categoria = valor;
     }
     for (const [palabra, valor] of Object.entries(colores)) {
       if (texto.toLowerCase().includes(palabra)) color = valor;
     }
-    for (const t of tallas) {
-      if (texto.toUpperCase().includes(t)) talla = t;
-    }
 
-    if (categoria || color || talla) {
-      guardarPreferencias({ categoria, color, talla });
-      addMessage(
-        `He aplicado tus filtros: ${categoria || "todos"}, ${color || "todos"}, ${talla || "todas"}`,
-        "bot"
-      );
+    if (categoria || color) {
+      guardarPreferencias({ categoria, color });
     }
   }
 
-  // Llamada a la API REST de Gemini
+  // 4. Llamada a la API de Gemini
   async function sendToGemini(message) {
+    if (!catalogoContexto) await cargarCatalogoParaIA();
+
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -76,9 +108,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 role: "user",
                 parts: [
                   {
-                    text: `Eres VestIA, un estilista virtual. 
-                    El usuario dice: "${message}". 
-                    Responde con sugerencias de moda y menciona productos del catálogo (blusas, pantalones, vestidos, accesorios).`
+                    // PROMPT INGENIERIZADO PARA DEVOLVER IDs
+                    text: `Eres VestIA, estilista de moda.
+                    
+                    INVENTARIO DISPONIBLE (Usa SOLO esto):
+                    ${catalogoContexto}
+
+                    REGLA IMPORTANTE DE FORMATO:
+                    Cada vez que menciones un producto específico del inventario para sugerirlo, DEBES escribir su ID al final de la frase exactamente así: [PRODUCT_ID: número].
+                    
+                    Ejemplo: "Te recomiendo este vestido rojo [PRODUCT_ID: 45] que combina genial con estos zapatos [PRODUCT_ID: 12]."
+                    
+                    El usuario dice: "${message}"`
                   }
                 ]
               }
@@ -88,20 +129,18 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       const data = await response.json();
-      const reply =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "No entendí tu mensaje.";
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No entendí.";
+      
       addMessage(reply, "bot");
-
-      // Detectar filtros en el mensaje
       detectarFiltros(message);
+
     } catch (error) {
       console.error(error);
-      addMessage("Error al conectar con el asistente.", "bot");
+      addMessage("Error de conexión.", "bot");
     }
   }
 
-  // Botón enviar texto
+  // Event Listeners (sin cambios importantes)
   sendBtn.addEventListener("click", () => {
     const text = input.value.trim();
     if (!text) return;
@@ -110,21 +149,21 @@ document.addEventListener("DOMContentLoaded", () => {
     sendToGemini(text);
   });
 
-  // Botón abrir selector de imagen
-  imageBtn.addEventListener("click", () => {
-    imageUpload.click();
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendBtn.click();
   });
 
-  // Subir imagen y analizar
+  // Manejo de Imágenes
+  imageBtn.addEventListener("click", () => imageUpload.click());
+
   imageUpload.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    addMessage("📷 Imagen subida, analizando...", "user");
+    addMessage("📷 Analizando prenda...", "user");
 
     try {
       const base64 = await toBase64(file);
-
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -135,7 +174,13 @@ document.addEventListener("DOMContentLoaded", () => {
               {
                 role: "user",
                 parts: [
-                  { text: "Analiza esta prenda y sugiere combinaciones dentro del catálogo VestIA." },
+                  { 
+                    text: `Analiza esta imagen. Sugiere un outfit completo usando el siguiente inventario.
+                    IMPORTANTE: Incluye [PRODUCT_ID: numero] después de cada producto sugerido para mostrarlo.
+                    
+                    INVENTARIO:
+                    ${catalogoContexto}` 
+                  },
                   { inlineData: { mimeType: file.type, data: base64 } }
                 ]
               }
@@ -145,17 +190,14 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       const data = await response.json();
-      const reply =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "No se pudo analizar la imagen.";
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude analizar la imagen.";
       addMessage(reply, "bot");
     } catch (error) {
       console.error(error);
-      addMessage("Error al analizar la imagen.", "bot");
+      addMessage("Error analizando imagen.", "bot");
     }
   });
 
-  // Convertir imagen a Base64
   function toBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

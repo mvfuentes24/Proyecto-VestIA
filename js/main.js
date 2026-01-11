@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // inicializar carrito (persistencia + fallback si API no está disponible)
   await initCart();
   initFilters(handleFiltersChange);
-  // conectar barra de búsqueda en navbar
   const searchForm = document.getElementById('navSearchForm');
   const searchInput = document.getElementById('navSearchInput');
   if (searchForm && searchInput) {
@@ -104,7 +103,7 @@ function renderProducts(products) {
         </div>
       </div>
     `;
-    // wire del botón para agregar al carrito
+    //botón para agregar al carrito
     const btn = card.querySelector('button');
     btn && btn.addEventListener('click', () => addToCart(p));
     grid.appendChild(card);

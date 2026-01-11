@@ -169,6 +169,14 @@ body {
 .cart-item:last-child {
   border-bottom: none;
 }
+.cart-qty {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+.cart-qty-input {
+  width: 72px;
+}
 .cart-empty {
   color: #6c757d;
   padding: 0.5rem 0;

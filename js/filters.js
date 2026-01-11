@@ -1,4 +1,4 @@
-
+//contastes para los filtros
 const COLOR = ['black', 'white', 'beige', 'blue', 'red', 'green'];
 const SIZE = ['XS', 'S', 'M', 'L', 'XL'];
 const OCCASION = ['casual', 'formal', 'deportivo', 'fiesta'];
@@ -13,7 +13,7 @@ const PARTY_WORDS = ['party', 'cocktail', 'evening', 'fiesta', 'night', 'club', 
 function pickFromCategories(option, numeroReferencia) {
 	return option[numeroReferencia % option.length];
 }
-
+//buscara la ocasion con las keywords o categoria
 function pickOccasion(product, numeroReferencia) {
 	const category = (product.category || '').toLowerCase();
 	const text = `${product.title || ''} ${product.description || ''}`.toLowerCase();
@@ -32,14 +32,14 @@ function pickOccasion(product, numeroReferencia) {
 	if (category.includes('tops') || category.includes('shirts')) return 'casual';
 
     //por defecto 
-	return pickFromPool(OCCASION, numeroReferencia);
+	return pickFromCategories(OCCASION, numeroReferencia);
 }
 
 function hasKeyWord(text, words) {
 	return words.some(w => text.includes(w));
 }
 
-// complementa los productos con atributos adicionales
+// complementa los productos con atributos adicionales (si hace falta)
 export function decorateProducts(products) {
 	return (products || []).map(p => ({
 		...p,
@@ -64,6 +64,7 @@ export function applyFilters(products, filters) {
 	});
 }
 
+//escuchar cambios en los filtros
 export function initFilters(onChange) {
 	const categorySelect = document.getElementById('categorySelect');
 	const colorSelect = document.getElementById('colorSelect');

@@ -1,5 +1,5 @@
 import { GEMINI_API_KEY, GEMINI_MODEL } from "./config.js";
-import { guardarPreferencias } from "./profile.js";
+import { guardarPreferencias, obtenerContextoActual } from "./profile.js";
 import { fetchProducts } from "./products.js"; //
 import { decorateProducts } from "./filters.js"; //
 
@@ -94,39 +94,44 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 4. Llamada a la API de Gemini
   async function sendToGemini(message) {
-    if (!catalogoContexto) await cargarCatalogoParaIA();
+  if (!catalogoContexto) await cargarCatalogoParaIA();
 
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    // PROMPT INGENIERIZADO PARA DEVOLVER IDs
-                    text: `Eres VestIA, estilista de moda.
-                    
-                    INVENTARIO DISPONIBLE (Usa SOLO esto):
-                    ${catalogoContexto}
+  // OBTENEMOS EL CONTEXTO DE FILTROS ACTUAL
+  const contextoUsuario = obtenerContextoActual();
 
-                    REGLA IMPORTANTE DE FORMATO:
-                    Cada vez que menciones un producto específico del inventario para sugerirlo, DEBES escribir su ID al final de la frase exactamente así: [PRODUCT_ID: número].
-                    
-                    Ejemplo: "Te recomiendo este vestido rojo [PRODUCT_ID: 45] que combina genial con estos zapatos [PRODUCT_ID: 12]."
-                    
-                    El usuario dice: "${message}"`
-                  }
-                ]
-              }
-            ]
-          })
-        }
-      );
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `Eres VestIA, estilista de moda personal. 
+                  
+                  ${contextoUsuario} 
+
+                  INVENTARIO DISPONIBLE (Usa SOLO esto):
+                  ${catalogoContexto}
+
+                  REGLA DE ORO:
+                  Si el contexto indica que el usuario tiene filtros aplicados (como color, talla o categoría), prioriza productos que cumplan con esos requisitos en tus sugerencias.
+
+                  REGLA DE FORMATO:
+                  Cada vez que menciones un producto, escribe su ID así: [PRODUCT_ID: número].
+                  
+                  El usuario dice: "${message}"`
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
 
       const data = await response.json();
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No entendí.";

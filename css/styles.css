@@ -6,6 +6,33 @@
 :root {
   --primary-color: #111;
   --secondary-color: #f5f5f5;
+  --tertiary-color:#5c5f66;
+  --filter-box-bg: #ced4da;
+  --filter-box-border: #ced4da;
+}
+
+.brand-mark {
+  font-family: 'Playfair Display', 'Poppins', serif;
+  font-size: 1.7rem;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.brand-text {
+  font-weight: 700;
+}
+
+.brand-ia {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tertiary-color);
+  border-bottom: 2px solid var(--tertiary-color);
+  padding-bottom: 0.05rem;
 }
 
 * {
@@ -24,7 +51,7 @@ body {
               url('../images/navbarfoto.jpg');
   background-size: cover;
   background-position: center;
-  color: white;
+  color: var(--secondary-color);
 }
 
 .hero h1 {
@@ -40,9 +67,10 @@ body {
 
 /* FILTROS */
 .filter-box {
-  background: white;
+  background: var(--filter-box-bg);
   padding: 1.5rem;
   border-radius: 10px;
+  border: 1px solid var(--filter-box-border);
 }
 
 
@@ -82,7 +110,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: #6c757d;
+  color: var(--tertiary-color);
 }
 
 
@@ -107,13 +135,13 @@ body {
 
 /* ASISTENTE */
 .assistant {
-  background-color: white;
+  background-color: var(--secondary-color);
   padding: 4rem 0;
 }
 
 .chatbox {
   max-width: 500px;
-  background: #f8f9fa;
+  background: var(s--secondary-color);
   border-radius: 15px;
   padding: 1rem;
 }
@@ -124,7 +152,7 @@ body {
 }
 
 .bot-message {
-  background: white;
+  background: var(--secondary-color);
   padding: 0.7rem;
   border-radius: 10px;
   margin-bottom: 0.5rem;
@@ -143,7 +171,6 @@ body {
   font-size: 0.7rem;
 }
 
-/* CARRITO SECCIÓN SEPARADA */
 .cart-section {
   background: #f0f2f5;
   padding: 4rem 0;
@@ -181,11 +208,32 @@ body {
   color: #6c757d;
   padding: 0.5rem 0;
 }
+/* PAGINACIÓN */
+.pagination .page-link {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.pagination .page-link:hover {
+  color: var(--secondary-color);
+  background-color: var(--tertiary-color);
+  border-color: var(--tertiary-color);
+}
+
+.pagination .page-item.active .page-link {
+  color: var(--secondary-color);
+  background-color: var(--tertiary-color);
+  border-color: var(--tertiary-color);
+}
+
+.pagination .page-link:focus {
+  box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.3);
+}
 
 /* FOOTER */
 .footer {
   background: var(--primary-color);
-  color: white;
+  color: var(--secondary-color);
   padding: 1rem 0;
   margin-top: 3rem;
 }

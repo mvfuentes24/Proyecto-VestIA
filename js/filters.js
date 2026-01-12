@@ -1,4 +1,4 @@
-//contastes para los filtros
+//constantes para los filtros
 const COLOR = ['black', 'white', 'beige', 'blue', 'red', 'green'];
 const SIZE = ['XS', 'S', 'M', 'L', 'XL'];
 const OCCASION = ['casual', 'formal', 'deportivo', 'fiesta'];
@@ -40,7 +40,7 @@ function hasKeyWord(text, words) {
 }
 
 // complementa los productos con atributos adicionales (si hace falta)
-export function decorateProducts(products) {
+export function completeProducts(products) {
 	return (products || []).map(p => ({
 		...p,
 		color: p.color || pickFromCategories(COLOR, p.id + 1),

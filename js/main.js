@@ -1,15 +1,15 @@
 import { fetchProducts } from './products.js';
-import { initFilters, getFilters, applyFilters, decorateProducts } from './filters.js';
+import { initFilters, getFilters, applyFilters, completeProducts } from './filters.js';
 import { addToCart, initCart } from './cart.js';
 
 let currentPage = 1;
 const perPage = 12;
 let currentCategory = '';
-let cachedProducts = [];
+let loadedProducts = [];
 let currentQuery = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // inicializar carrito (persistencia + fallback si API no está disponible)
+  // inicializar carrito (persistencia y fallback si API no está disponible)
   await initCart();
   initFilters(handleFiltersChange);
   const searchForm = document.getElementById('navSearchForm');
@@ -51,12 +51,12 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
 
 async function loadData() {
   const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
-  cachedProducts = decorateProducts(data.products);
+  loadedProducts = completeProducts(data.products);
 }
 
 function renderWithFilters() {
   const filters = getFilters();
-  const filtered = applyFilters(cachedProducts, filters);
+  const filtered = applyFilters(loadedProducts, filters);
   const total = filtered.length;
   const start = (currentPage - 1) * perPage;
   const end = start + perPage;
@@ -65,7 +65,7 @@ function renderWithFilters() {
   renderProducts(pageItems);
   renderPagination(total, currentPage);
 }
-
+//muestra el grid de carga
 function showLoadingGrid() {
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
@@ -99,7 +99,7 @@ function renderProducts(products) {
           ${sizeLine}
           <p class="card-text">${p.description}</p>
           <p class="fw-bold">$${p.price}</p>
-          <button class="btn btn-primary btn-sm">Agregar al carrito</button>
+          <button class="btn btn-secondary btn-sm">Agregar al carrito</button>
         </div>
       </div>
     `;

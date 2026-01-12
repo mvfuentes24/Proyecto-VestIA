@@ -27,7 +27,7 @@ function saveCartToStorage(items) {
 }
 
 //cantidad de items en el carrito
-function getCount() {
+function getCountItems() {
 	return cartItems.reduce((totalUnits, product) => totalUnits + (Number(product.quantity) || 0), 0);
 }
 
@@ -36,9 +36,9 @@ function formatCurrency(value) {
 	return n.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
 }
 //contador de carrito
-function updateBadge() {
+function updateBadgeCart() {
 	const cartCount = document.getElementById('cartCount');
-	if (cartCount) cartCount.textContent = String(getCount());
+	if (cartCount) cartCount.textContent = String(getCountItems());
 }
 //renderizar cards de carrito
 function renderCartSection() {
@@ -48,7 +48,7 @@ function renderCartSection() {
 	if (!cartItems.length) {
 		container.innerHTML = `
 			<div class="container my-4">
-				<h2 class="section-title">Carrito</h2>
+				<h2 class="section-title">Mi carrito</h2>
 				<div class="cart-panel mx-auto">
 					<div class="cart-empty">Tu carrito está vacío.</div>
 				</div>
@@ -86,7 +86,7 @@ function renderCartSection() {
 
 	container.innerHTML = `
 		<div class="container my-4">
-			<h2 class="section-title">Carrito</h2>
+			<h2 class="section-title">Mi carrito</h2>
 			<div class="cart-panel mx-auto">
 				<div class="cart-items">
 					${itemsHtml}
@@ -104,21 +104,21 @@ function renderCartSection() {
 			removeFromCart(id);
 		});
 	});
-
+    //listener para aumentar cantidad de item en carrito
 	container.querySelectorAll('[data-increment-id]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const id = Number(btn.getAttribute('data-increment-id'));
 			changeQuantity(id, 1);
 		});
 	});
-
+    //listener para disminuir cantidad de item en carrito
 	container.querySelectorAll('[data-decrement-id]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const id = Number(btn.getAttribute('data-decrement-id'));
 			changeQuantity(id, -1);
 		});
 	});
-
+    //listener para cambiar cantidad de item en carrito
 	container.querySelectorAll('[data-qty-id]').forEach(input => {
 		input.addEventListener('change', () => {
 			const id = Number(input.getAttribute('data-qty-id'));
@@ -144,7 +144,7 @@ async function apiAvailable(timeoutMs = 3000) {
 export async function initCart() {
 	const healthy = await apiAvailable();
 	cartItems = healthy ? loadCartFromStorage() : [];
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 
@@ -169,50 +169,50 @@ export function addToCart(product) {
 		});
 	}
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
-
+//elimina items del carrito
 export function removeFromCart(id) {
 	cartItems = cartItems.filter(it => it.id !== id);
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
-
-function changeQuantity(id, delta) {
+//cambia la cantidad de items en el carrito
+function changeQuantity(id, change) {
 	const idx = cartItems.findIndex(it => it.id === id);
 	if (idx < 0) return;
 	const current = Number(cartItems[idx].quantity) || 0;
-	const next = current + delta;
+	const next = current + change;
 	if (next <= 0) {
 		removeFromCart(id);
 		return;
 	}
 	cartItems[idx].quantity = next;
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 
-function setQuantity(id, qty) {
+function setQuantity(id, quantity) {
 	const idx = cartItems.findIndex(it => it.id === id);
 	if (idx < 0) return;
-	const next = Number(qty);
+	const next = Number(quantity);
 	if (!Number.isFinite(next) || next <= 0) {
 		removeFromCart(id);
 		return;
 	}
 	cartItems[idx].quantity = next;
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 
 export function clearCart() {
 	cartItems = [];
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 

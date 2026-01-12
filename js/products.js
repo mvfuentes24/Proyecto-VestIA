@@ -1,5 +1,6 @@
 import { DUMMYJSON_BASE } from './config.js';
 
+// Lista blanca de categorías de ropa que se permiten mostrar
 const clothingCategory = [
   'tops',
   'mens-shirts',
@@ -13,17 +14,19 @@ const clothingCategory = [
   'sunglasses'
 ];
 
-
+// Obtiene productos desde la API
 export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '' } = {}) {
   try {
-    if (!q && !category) {
-      return await fetchClothingOnly({ limit, skip });
-    }
+  // trae los productos sin búsqueda ni categoría
+  if (!q && !category) {
+    return await fetchClothingOnly({ limit, skip });
+  }
 //muestra los productos por busqueda o categoria
     let endpoint;
     if (q) {
       endpoint = `${DUMMYJSON_BASE}/products/search?q=${encodeURIComponent(q)}&limit=100&skip=0`;
     } else if (category) {
+    // si no es categoría de ropa, no consulta
       if (!isClothingCategory(category)) return { products: [], total: 0, skip, limit };
       endpoint = `${DUMMYJSON_BASE}/products/category/${category}?limit=${limit}&skip=${skip}`;
     }
@@ -50,11 +53,11 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
   } 
 }
 
-//muestra todos los productos
 async function fetchClothingOnly({ limit, skip }) {
   const requests = clothingCategory.map(cat =>
     fetch(`${DUMMYJSON_BASE}/products/category/${cat}?limit=100`)
   );
+
 
   const responses = await Promise.allSettled(requests);
 
@@ -67,13 +70,13 @@ async function fetchClothingOnly({ limit, skip }) {
     })
   );
 
-  //juntar todos los proudctos y ordena por id
   const clothing = jsons.flatMap(j => j.products || []).sort((producto1, producto2) => producto1.id - producto2.id);
   const products = clothing.slice(skip, skip + limit);
 
   return { products, total: clothing.length, skip, limit };
 }
 
+// Verifica si la categoría pertenece a las permitidas de ropa
 function isClothingCategory(cat) {
   return clothingCategory.includes(cat);
 }

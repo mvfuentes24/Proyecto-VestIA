@@ -1,12 +1,7 @@
-/* js/profile.js */
+import { KEY_PREFERENCIAS, KEY_CHAT_HISTORY, KEY_BUSQUEDA } from './config.js';
 
-// Claves para LocalStorage
-const KEY_PREFERENCIAS = "vestia_user_prefs";
-const KEY_CHAT_HISTORY = "vestia_chat_history";
-const KEY_BUSQUEDA = "vestia_last_search";
-
-// --- GESTIÓN DE PREFERENCIAS (FILTROS) ---
-
+// guardarBusqueda
+//  Guarda la última búsqueda del usuario en localStorage
 export function guardarBusqueda(termino) {
   if (!termino) return;
   localStorage.setItem(KEY_BUSQUEDA, termino);
@@ -17,12 +12,13 @@ export function getUltimaBusqueda() {
   return localStorage.getItem(KEY_BUSQUEDA) || "";
 }
 
-// --- NUEVO: Generador de Contexto para el Bot ---
-// Esta función crea un texto resumen de lo que el usuario está viendo/haciendo
+
+// obtenerContextoActual
+//  Genera un string resumido del estado actual del usuario (última búsqueda y filtros aplicados). 
 export function obtenerContextoActual() {
-  const prefs = getUserPreferences();
+  const prefs = getPreferencias();
   const busqueda = getUltimaBusqueda();
-  
+
   let contexto = "CONTEXTO ACTUAL DEL USUARIO EN LA TIENDA:\n";
   
   if (busqueda) {
@@ -45,42 +41,44 @@ export function obtenerContextoActual() {
   return contexto;
 }
 
+// guardarPreferencias
+//  Fusiona las preferencias recibidas con las almacenadas
 export function guardarPreferencias(nuevasPreferencias) {
-  const actuales = getUserPreferences();
-  // Fusionamos las actuales con las nuevas para no borrar datos previos
+  const actuales = getPreferencias();
+
   const actualizadas = { ...actuales, ...nuevasPreferencias };
   localStorage.setItem(KEY_PREFERENCIAS, JSON.stringify(actualizadas));
   console.log("Preferencias guardadas:", actualizadas);
 }
 
-export function getUserPreferences() {
+export function getPreferencias() {
   const stored = localStorage.getItem(KEY_PREFERENCIAS);
   return stored ? JSON.parse(stored) : {};
 }
 
-// Aplica los valores guardados a los selectores HTML al cargar la página
+
+// applyPreferencesToFilters
+//  Lee las preferencias del usuario y las aplica a los selects del DOM
 export function applyPreferencesToFilters() {
-  const prefs = getUserPreferences();
+  const prefs = getPreferencias();
   
   const mapCampos = {
     categoria: "categorySelect",
     color: "colorSelect",
     talla: "sizeSelect",
-    ocasion: "occasionSelect" // Agregado para cumplir con estilo/ocasión
+    ocasion: "occasionSelect" 
   };
 
-  // Recorremos y asignamos si existe el elemento y la preferencia
   Object.keys(mapCampos).forEach(key => {
     const element = document.getElementById(mapCampos[key]);
     if (element && prefs[key]) {
       element.value = prefs[key];
-      // Disparamos el evento 'change' manualmente para que los filtros se activen visualmente
       element.dispatchEvent(new Event('change'));
     }
   });
 }
 
-// Escucha cambios en los selects para guardar automáticamente
+
 export function setupFilterListeners() {
   const ids = ["categorySelect", "colorSelect", "sizeSelect", "occasionSelect"];
   
@@ -88,7 +86,7 @@ export function setupFilterListeners() {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener("change", () => {
-        // Mapeamos el ID del input a la clave de preferencia
+        // Mapea el id del select a la clave de preferencia y guarda el valor
         const key = id.replace("Select", "").toLowerCase().replace("occasion", "ocasion").replace("category", "categoria").replace("size", "talla");
         guardarPreferencias({ [key]: el.value });
       });
@@ -96,23 +94,3 @@ export function setupFilterListeners() {
   });
 }
 
-// --- GESTIÓN DEL HISTORIAL DEL CHAT (REQUERIMIENTO 55) ---
-
-export function getChatHistory() {
-  const stored = localStorage.getItem(KEY_CHAT_HISTORY);
-  return stored ? JSON.parse(stored) : [];
-}
-
-export function saveChatMessage(text, sender) {
-  const history = getChatHistory();
-  // Agregamos el nuevo mensaje
-  history.push({ text, sender, timestamp: new Date().toISOString() });
-  // Limitamos el historial a los últimos 50 mensajes para no llenar la memoria
-  if (history.length > 50) history.shift(); 
-  
-  localStorage.setItem(KEY_CHAT_HISTORY, JSON.stringify(history));
-}
-
-export function clearChatHistory() {
-  localStorage.removeItem(KEY_CHAT_HISTORY);
-}

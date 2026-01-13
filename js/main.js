@@ -1,24 +1,24 @@
 import { fetchProducts } from './products.js';
-import { initFilters, getFilters, applyFilters, decorateProducts } from './filters.js';
+import { initFilters, getFilters, applyFilters, completeProducts } from './filters.js';
 import { addToCart, initCart } from './cart.js';
 // IMPORTAMOS las funciones de memoria
-import { guardarBusqueda, guardarPreferencias, getUserPreferences, getUltimaBusqueda, applyPreferencesToFilters } from './profile.js';
+import { guardarBusqueda, guardarPreferencias, getPreferencias, getUltimaBusqueda, applyPreferencesToFilters } from './profile.js';
 
 let currentPage = 1;
 const perPage = 12;
 let currentCategory = '';
-let cachedProducts = [];
+let loadedProducts = [];
 let currentQuery = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Inicializar carrito
+  // inicializar carrito (persistencia y fallback si API no está disponible)
   await initCart();
 
   // 2. Restaurar Preferencias Visuales (Selects del HTML)
   applyPreferencesToFilters(); 
   
   // 3. Restaurar Estado Interno (Variables JS)
-  const prefs = getUserPreferences();
+  const prefs = getPreferencias();
   const lastSearch = getUltimaBusqueda();
 
   // Si había una categoría guardada, la seteamos
@@ -34,8 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 4. Inicializar listeners de filtros
   initFilters(handleFiltersChange);
-
-  // 5. Conectar barra de búsqueda
   const searchForm = document.getElementById('navSearchForm');
   const searchInput = document.getElementById('navSearchInput');
   if (searchForm && searchInput) {
@@ -90,12 +88,12 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
 // ... (El resto de funciones loadData, renderWithFilters, etc. se mantienen igual)
 async function loadData() {
   const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
-  cachedProducts = decorateProducts(data.products);
+  loadedProducts = completeProducts(data.products);
 }
 
 function renderWithFilters() {
   const filters = getFilters();
-  const filtered = applyFilters(cachedProducts, filters);
+  const filtered = applyFilters(loadedProducts, filters);
   const total = filtered.length;
   const start = (currentPage - 1) * perPage;
   const end = start + perPage;
@@ -104,7 +102,7 @@ function renderWithFilters() {
   renderProducts(pageItems);
   renderPagination(total, currentPage);
 }
-
+//muestra el grid de carga
 function showLoadingGrid() {
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
@@ -138,10 +136,11 @@ function renderProducts(products) {
           ${sizeLine}
           <p class="card-text">${p.description}</p>
           <p class="fw-bold">$${p.price}</p>
-          <button class="btn btn-primary btn-sm">Agregar al carrito</button>
+          <button class="btn btn-secondary btn-sm">Agregar al carrito</button>
         </div>
       </div>
     `;
+    //botón para agregar al carrito
     const btn = card.querySelector('button');
     btn && btn.addEventListener('click', () => addToCart(p));
     grid.appendChild(card);

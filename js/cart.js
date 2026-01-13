@@ -1,16 +1,19 @@
-import { DUMMYJSON_BASE } from './config.js';
+import { DUMMYJSON_BASE, CART_STORAGE_KEY } from './config.js';
 
-const CART_STORAGE_KEY = 'vestia_cart_v1';
 
 let cartItems = [];
 
+//obtiener carrito desde localstorage
 function loadCartFromStorage() {
 	try {
 		const raw = localStorage.getItem(CART_STORAGE_KEY);
 		if (!raw) return [];
 		const parsed = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
-		return parsed;
+		return parsed.map(it => ({
+			...it,
+			quantity: Number(it.quantity ?? it.qty ?? 1) || 1,
+		}));
 	} catch {
 		return [];
 	}
@@ -20,32 +23,32 @@ function saveCartToStorage(items) {
 	try {
 		localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items || []));
 	} catch {
-		// ignore storage errors
 	}
 }
 
-function getCount() {
-	return cartItems.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
+//cantidad de items en el carrito
+function getCountItems() {
+	return cartItems.reduce((totalUnits, product) => totalUnits + (Number(product.quantity) || 0), 0);
 }
 
 function formatCurrency(value) {
 	const n = Number(value) || 0;
 	return n.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
 }
-
-function updateBadge() {
-	const el = document.getElementById('cartCount');
-	if (el) el.textContent = String(getCount());
+//contador de carrito
+function updateBadgeCart() {
+	const cartCount = document.getElementById('cartCount');
+	if (cartCount) cartCount.textContent = String(getCountItems());
 }
-
+//renderizar cards de carrito
 function renderCartSection() {
 	const container = document.getElementById('carrito');
-	if (!container) return; // optional: only if exists in DOM
-
+	if (!container) return; 
+    //el carrito esta vacio
 	if (!cartItems.length) {
 		container.innerHTML = `
 			<div class="container my-4">
-				<h2 class="section-title">Carrito</h2>
+				<h2 class="section-title">Mi carrito</h2>
 				<div class="cart-panel mx-auto">
 					<div class="cart-empty">Tu carrito está vacío.</div>
 				</div>
@@ -65,19 +68,25 @@ function renderCartSection() {
 			</div>
 			<div class="text-end">
 				<div class="small text-muted">Precio: ${formatCurrency(it.price)}</div>
-				<div>Cant.: ${it.qty} · Subtotal: ${formatCurrency(it.price * it.qty)}</div>
+					<div>Subtotal: ${formatCurrency(it.price * it.quantity)}</div>
 			</div>
-			<div>
-				<button class="btn btn-sm btn-outline-danger" data-remove-id="${it.id}">Eliminar</button>
-			</div>
+				<div class="cart-qty d-flex">
+					<div class="d-flex align-items-center gap-2 mb-2">
+						<span class="text-muted small">Cantidad</span>
+						<button class="btn btn-sm btn-outline-secondary" data-decrement-id="${it.id}">-</button>
+						<input type="number" min="1" class="form-control form-control-sm cart-qty-input" data-qty-id="${it.id}" value="${it.quantity}">
+						<button class="btn btn-sm btn-outline-secondary" data-increment-id="${it.id}">+</button>
+					</div>
+					<button class="btn btn-sm btn-outline-danger" data-remove-id="${it.id}">Eliminar</button>
+				</div>
 		</div>
 	`).join('');
 
-	const total = cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
+	const total = cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
 
 	container.innerHTML = `
 		<div class="container my-4">
-			<h2 class="section-title">Carrito</h2>
+			<h2 class="section-title">Mi carrito</h2>
 			<div class="cart-panel mx-auto">
 				<div class="cart-items">
 					${itemsHtml}
@@ -88,11 +97,33 @@ function renderCartSection() {
 			</div>
 		</div>
 	`;
-
+    //listener para eliminar items del carrito    
 	container.querySelectorAll('[data-remove-id]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const id = Number(btn.getAttribute('data-remove-id'));
 			removeFromCart(id);
+		});
+	});
+    //listener para aumentar cantidad de item en carrito
+	container.querySelectorAll('[data-increment-id]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const id = Number(btn.getAttribute('data-increment-id'));
+			changeQuantity(id, 1);
+		});
+	});
+    //listener para disminuir cantidad de item en carrito
+	container.querySelectorAll('[data-decrement-id]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const id = Number(btn.getAttribute('data-decrement-id'));
+			changeQuantity(id, -1);
+		});
+	});
+    //listener para cambiar cantidad de item en carrito
+	container.querySelectorAll('[data-qty-id]').forEach(input => {
+		input.addEventListener('change', () => {
+			const id = Number(input.getAttribute('data-qty-id'));
+			const val = Number(input.value);
+			setQuantity(id, val);
 		});
 	});
 }
@@ -109,23 +140,23 @@ async function apiAvailable(timeoutMs = 3000) {
 	}
 }
 
+//inicializar cart para localstorage
 export async function initCart() {
 	const healthy = await apiAvailable();
-	// Fallback: si la API no está disponible, mostrar carrito vacío (sin borrar localStorage)
 	cartItems = healthy ? loadCartFromStorage() : [];
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 
 export function getCartItems() {
 	return [...cartItems];
 }
-
+//agregar items al carrito
 export function addToCart(product) {
 	if (!product || !product.id) return;
 	const idx = cartItems.findIndex(it => it.id === product.id);
 	if (idx >= 0) {
-		cartItems[idx].qty = (Number(cartItems[idx].qty) || 0) + 1;
+		cartItems[idx].quantity = (Number(cartItems[idx].quantity) || 0) + 1;
 	} else {
 		cartItems.push({
 			id: product.id,
@@ -134,25 +165,54 @@ export function addToCart(product) {
 			thumbnail: product.thumbnail,
 			color: product.color || null,
 			size: product.size || null,
-			qty: 1,
+			quantity: 1,
 		});
 	}
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
-
+//elimina items del carrito
 export function removeFromCart(id) {
 	cartItems = cartItems.filter(it => it.id !== id);
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
+	renderCartSection();
+}
+//cambia la cantidad de items en el carrito
+function changeQuantity(id, change) {
+	const idx = cartItems.findIndex(it => it.id === id);
+	if (idx < 0) return;
+	const current = Number(cartItems[idx].quantity) || 0;
+	const next = current + change;
+	if (next <= 0) {
+		removeFromCart(id);
+		return;
+	}
+	cartItems[idx].quantity = next;
+	saveCartToStorage(cartItems);
+	updateBadgeCart();
+	renderCartSection();
+}
+
+function setQuantity(id, quantity) {
+	const idx = cartItems.findIndex(it => it.id === id);
+	if (idx < 0) return;
+	const next = Number(quantity);
+	if (!Number.isFinite(next) || next <= 0) {
+		removeFromCart(id);
+		return;
+	}
+	cartItems[idx].quantity = next;
+	saveCartToStorage(cartItems);
+	updateBadgeCart();
 	renderCartSection();
 }
 
 export function clearCart() {
 	cartItems = [];
 	saveCartToStorage(cartItems);
-	updateBadge();
+	updateBadgeCart();
 	renderCartSection();
 }
 

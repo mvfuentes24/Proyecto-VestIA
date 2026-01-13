@@ -1,10 +1,9 @@
 // para el dummyJSON
 export const DUMMYJSON_BASE = 'https://dummyjson.com';
-
-
 export const GEMINI_MODEL = 'gemini-2.5-flash';
+export const GEMINI_API_KEY = 'AIzaSyAzZ-qGjb3I-Bd1dKFO_ABGccyZl5tyYGE';
+export const CART_STORAGE_KEY = 'vestia_cart';
+export const KEY_PREFERENCIAS = "vestia_user_prefs";
+export const KEY_CHAT_HISTORY = "vestia_chat_history";
+export const KEY_BUSQUEDA = "vestia_last_search";
 
-
-export const GEMINI_API_KEY = 'TU_API_KEY_AQUI';
-
-export const CART_STORAGE_KEY = 'vestia_cart_v1';

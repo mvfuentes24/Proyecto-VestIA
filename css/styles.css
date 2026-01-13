@@ -44,6 +44,7 @@ body {
   background-color: var(--secondary-color);
 }
 
+
 /* HERO */
 .hero {
   height: 80vh;
@@ -119,14 +120,27 @@ body {
 }
 
 /* PRODUCTOS */
-.product-card {
+#productsGrid .card {
   border: none;
   border-radius: 15px;
-  transition: transform 0.2s ease;
+  transition: transform 0.22s cubic-bezier(.2,.8,.2,1), box-shadow 0.22s;
+  will-change: transform;
+  overflow: hidden;
+  backface-visibility: hidden;
 }
 
-.product-card:hover {
-  transform: translateY(-5px);
+#productsGrid .card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(15,15,15,0.12);
+}
+
+#productsGrid .card .card-img-top {
+  transition: transform 0.35s ease;
+  transform-origin: center center;
+}
+
+#productsGrid .card:hover .card-img-top {
+  transform: scale(1.06);
 }
 
 .price {

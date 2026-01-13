@@ -1,6 +1,7 @@
 import { fetchProducts } from './products.js';
 import { initFilters, getFilters, applyFilters, completeProducts } from './filters.js';
 import { addToCart, initCart } from './cart.js';
+import { saveSearch, savePreferences, getPreferences, getLastSearch, applyPreferencesToFilters } from './profile.js';
 
 let currentPage = 1;
 const perPage = 12;
@@ -8,9 +9,25 @@ let currentCategory = '';
 let loadedProducts = [];
 let currentQuery = '';
 
+//listener para guardar preferencias al cambiar los filtros
 document.addEventListener('DOMContentLoaded', async () => {
   // inicializar carrito (persistencia y fallback si API no está disponible)
   await initCart();
+
+  //  Restaurar Preferencias Visuales (Selects del HTML)
+  applyPreferencesToFilters(); 
+  
+  const prefs = getPreferences();
+  const lastSearch = getLastSearch();
+
+  //mantiene los ultimos filtros usados
+  if (prefs.categoria) {
+    currentCategory = prefs.categoria;
+  }
+  
+  
+
+  //Inicializar listeners de filtros
   initFilters(handleFiltersChange);
   const searchForm = document.getElementById('navSearchForm');
   const searchInput = document.getElementById('navSearchInput');
@@ -18,21 +35,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     searchForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       currentQuery = (searchInput.value || '').trim();
+      
+      // guardar busqueda para uso en chatbox
+      saveSearch(currentQuery);
+      
       currentPage = 1;
       showLoadingGrid();
       await loadData();
       renderWithFilters();
     });
   }
+
   showLoadingGrid();
   await loadData();
   renderWithFilters();
 });
 
 let renderTimer = null;
+// maneja el cambio de filtros y recarga productos
 async function handleFiltersChange(selectedCategory = '', opts = {}) {
   const filtersOnly = !!opts.filtersOnly;
   currentPage = 1;
+
+  
+  const currentFilters = getFilters();
+
+  savePreferences({
+    categoria: selectedCategory || currentFilters.category,
+    color: currentFilters.color,
+    talla: currentFilters.size,
+    ocasion: currentFilters.occasion
+  });
 
   if (!filtersOnly && selectedCategory !== currentCategory) {
     currentCategory = selectedCategory;
@@ -49,6 +82,7 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
   }, 150);
 }
 
+//hace la carga de productos según categoría y búsqueda actuales
 async function loadData() {
   const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
   loadedProducts = completeProducts(data.products);
@@ -82,7 +116,7 @@ function renderProducts(products) {
   grid.innerHTML = '';
 
   if (products.length === 0) {
-    grid.innerHTML = `<p class="text-muted">No hay productos disponibles en esta categoría.</p>`;
+    grid.innerHTML = `<p class="text-muted">No hay productos disponibles con estos filtros.</p>`;
     return;
   }
 
@@ -113,7 +147,6 @@ function renderProducts(products) {
 function renderPagination(total, current) {
   const pagination = document.getElementById('pagination');
   pagination.innerHTML = '';
-
   const totalPages = Math.ceil(total / perPage);
 
   for (let i = 1; i <= totalPages; i++) {

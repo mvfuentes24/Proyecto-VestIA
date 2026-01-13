@@ -15,7 +15,7 @@ const clothingCategory = [
 ];
 
 // Obtiene productos desde la API
-export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '' } = {}) {
+export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '', talla = '' } = {}) {
   try {
   // trae los productos sin búsqueda ni categoría
   if (!q && !category) {
@@ -35,6 +35,8 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
     if (!res.ok) throw new Error('Error al obtener productos');
     const data = await res.json();
 
+    let products = data.products || [];
+
     if (q) {
       const filtered = (data.products || []).filter(p => isClothingCategory(p.category));
       const products = filtered.slice(skip, skip + limit);
@@ -46,7 +48,7 @@ export async function fetchProducts({ limit = 12, skip = 0, q = '', category = '
       return { products: filtered, total: filtered.length, skip, limit };
     }
 
-    return { products: data.products, total: data.total, skip, limit };
+    return { products, total: products.length, skip, limit };
   } catch (err) {
     console.error(err);
     return { products: [], total: 0, skip, limit };

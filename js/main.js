@@ -143,7 +143,7 @@ function renderProducts(products) {
     grid.appendChild(card);
   });
 }
-
+//renderiza la paginacion
 function renderPagination(total, current) {
   const pagination = document.getElementById('pagination');
   pagination.innerHTML = '';

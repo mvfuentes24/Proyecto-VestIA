@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       clearAttachment();
     }
   }
-
+  //limpia la imagen adjunta
   function clearAttachment() {
     pendingImageFile = null;
     pendingImageBase64 = null;
@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
     });
   }
-
+  // Agrega un mensaje al chat
   function addMessage(text, sender = "user") {
     const msg = document.createElement("div");
     msg.className = sender === "user" ? "user-message" : "bot-message";

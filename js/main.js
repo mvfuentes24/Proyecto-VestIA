@@ -9,7 +9,7 @@ let currentCategory = '';
 let loadedProducts = [];
 let currentQuery = '';
 
-//listener para guardar preferencias al cambiar los filtros
+//listener para cargar carrito y guardar preferencias al cambiar los filtros
 document.addEventListener('DOMContentLoaded', async () => {
   // inicializar carrito (persistencia y fallback si API no está disponible)
   await initCart();

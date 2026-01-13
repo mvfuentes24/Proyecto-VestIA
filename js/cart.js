@@ -1,6 +1,5 @@
 import { DUMMYJSON_BASE, CART_STORAGE_KEY } from './config.js';
 
-
 let cartItems = [];
 
 //obtiener carrito desde localstorage

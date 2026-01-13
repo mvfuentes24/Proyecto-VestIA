@@ -98,7 +98,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // - Construye y envía el prompt a la API de Gemini incluyendo:
   //     contextoUsuario (filtros y búsqueda recientes)
   //     catalogoContexto (resumen del inventario disponible)
-
   async function mensajeIA(message) {
     if (!catalogoContexto) await cargarCatalogoParaIA();
 

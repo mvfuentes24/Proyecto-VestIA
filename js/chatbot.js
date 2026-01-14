@@ -1,5 +1,5 @@
 import { GEMINI_API_KEY, GEMINI_MODEL } from "./config.js";
-import { guardarPreferencias, obtenerContextoActual } from "./profile.js";
+import { savePreferences, getCurrentContext } from "./profile.js";
 import { fetchProducts } from "./products.js";
 import { completeProducts } from "./filters.js";
 
@@ -9,21 +9,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sendBtn = document.getElementById("sendBtn");
   const imageBtn = document.getElementById("imageBtn");
   const imageUpload = document.getElementById("imageUpload");
+  const chatInputContainer = document.querySelector(".chat-input");
 
-  // productosGlobales: cache en memoria de objetos de productos
+  // cache en memoria de objetos de productos
   let productosGlobales = [];
 
-  // catalogoContexto: resumen del inventario que se envía en los prompts a Gemini para que tenga en cuenta el inventario real
-
+  // resumen del inventario que se envía en los prompts a Gemini para que tenga en cuenta el inventario real
   let catalogoContexto = "";
 
-  // 1. Cargar y preparar el catálogo para el contexto de la IA
-  async function cargarCatalogoParaIA() {
+  // Cargar y preparar el catálogo para el contexto de la IA
+  async function loadCatalogForAI() {
     try {
-      const data = await fetchProducts({ limit: 100 }); // Traemos suficientes productos
-      productosGlobales = completeProducts(data.products); // Decoramos con color/ocasión
+      const data = await fetchProducts({ limit: 100 }); 
+      productosGlobales = completeProducts(data.products); 
 
-      // Creamos el texto que leerá la IA (ID, título, categoría, precio, color, estilo, talla)
+      // se crea el texto que leerá la IA (ID, título, categoría, precio, color, estilo, talla)
       catalogoContexto = productosGlobales.map(p => 
         `- ID: ${p.id} | Nombre: ${p.title} | Cat: ${p.category} | Precio: $${p.price} | Color: ${p.color} | Estilo: ${p.occasion} | Talla: ${p.size }`
       ).join("\n");
@@ -34,11 +34,85 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  await cargarCatalogoParaIA();
+  await loadCatalogForAI();
 
-  // 2. formatearRespuestaConProductos
-  // - Busca tokens del tipo `[PRODUCT_ID: 123]` en la respuesta del modelo y  los sustituye por una tarjeta HTML pequeña que incluye la imagen
-  function formatearRespuestaConProductos(texto) {
+  //mensaje "pensando..." mientras la IA responde
+  let thinking = null;
+  function showThinking() {
+    if (thinking) return;
+    thinking = document.createElement("div");
+    thinking.className = "bot-message bot-thinking";
+    thinking.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Pensando...';
+    chatMessages.appendChild(thinking);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  function hideThinking() {
+    if (thinking && thinking.parentNode) {
+      thinking.parentNode.removeChild(thinking);
+    }
+    thinking = null;
+  }
+
+  
+  let pendingImageFile = null;
+  let pendingImageBase64 = null;
+  let attachmentBadge = null;
+  // Muestra o quita el badge de imagen adjunta
+  function renderAttachmentBadge() {
+    if (!chatInputContainer) return;
+    if (pendingImageFile) {
+      if (!attachmentBadge) {
+        attachmentBadge = document.createElement("div");
+        attachmentBadge.id = "attachmentBadge";
+        attachmentBadge.style.display = "flex";
+        attachmentBadge.style.alignItems = "center";
+        attachmentBadge.style.gap = "6px";
+        attachmentBadge.style.marginTop = "6px";
+        chatInputContainer.appendChild(attachmentBadge);
+      }
+      attachmentBadge.innerHTML = `
+        <span class="badge rounded-pill text-bg-secondary">
+          Imagen adjunta
+          <button type="button" aria-label="Quitar imagen" class="btn btn-sm btn-link text-light p-0 ms-1" style="text-decoration:none;">✕</button>
+        </span>
+      `;
+      const btn = attachmentBadge.querySelector("button");
+      btn && btn.addEventListener("click", clearAttachment);
+    } else if (attachmentBadge) {
+      attachmentBadge.remove();
+      attachmentBadge = null;
+    }
+  }
+  // Adjunta imagen y la convierte a base64
+  async function setAttachment(file) {
+    pendingImageFile = file;
+    pendingImageBase64 = null;
+    renderAttachmentBadge();
+    try {
+      pendingImageBase64 = await toBase64(file);
+    } catch (e) {
+      console.error("No se pudo leer la imagen adjunta:", e);
+      clearAttachment();
+    }
+  }
+  //limpia la imagen adjunta
+  function clearAttachment() {
+    pendingImageFile = null;
+    pendingImageBase64 = null;
+    renderAttachmentBadge();
+    if (imageUpload) imageUpload.value = "";
+  }
+
+  //limpia el formato de los productos en el chat
+  function cleanBasicMarkdown(texto) {
+    if (!texto) return "";
+    return texto
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/__(.*?)__/g, "$1");
+  }
+
+  // Encuentra tokens y los reemplaza con tarjeta de producto
+  function formatResponseWithProducts(texto) {
     const regex = /\[PRODUCT_ID:\s*(\d+)\]/g;
 
     return texto.replace(regex, (match, id) => {
@@ -57,15 +131,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
     });
   }
-
-  // 3. addMessage
-  // - Inserta un mensaje en el contenedor chatMessages.
+  // Agrega un mensaje al chat
   function addMessage(text, sender = "user") {
     const msg = document.createElement("div");
     msg.className = sender === "user" ? "user-message" : "bot-message";
 
     if (sender === "bot") {
-      msg.innerHTML = formatearRespuestaConProductos(text);
+      const textoLimpio = cleanBasicMarkdown(text);
+      msg.innerHTML = formatResponseWithProducts(textoLimpio);
     } else {
       msg.textContent = text;
     }
@@ -74,9 +147,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // detectarFiltros
-  // - Extrae palabras clave de categoría y color desde el texto del usuario
-  function detectarFiltros(texto) {
+  // Detecta filtros mencionados en el texto del usuario y los guarda como preferencias
+  function detectFilters(texto) {
     const categorias = { blusa: "tops", blusas: "tops", pantalón: "pants", pantalones: "pants", vestido: "dresses", vestidos: "dresses", accesorio: "accessories", accesorios: "accessories" };
     const colores = { negro: "black", blanco: "white", beige: "beige", azul: "blue", rojo: "red" };
 
@@ -90,20 +162,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (categoria || color) {
-      guardarPreferencias({ categoria, color });
+      savePreferences({ categoria, color });
     }
   }
 
-  // mensajeIA
-  // - Construye y envía el prompt a la API de Gemini incluyendo:
-  //     contextoUsuario (filtros y búsqueda recientes)
-  //     catalogoContexto (resumen del inventario disponible)
-  async function mensajeIA(message) {
-    if (!catalogoContexto) await cargarCatalogoParaIA();
+  
+  async function generateAIResponse(message, imageInlineData = null) {
+    if (!catalogoContexto) await loadCatalogForAI();
 
-    const contextoUsuario = obtenerContextoActual();
+    const contextoUsuario = getCurrentContext();
 
     try {
+      showThinking();
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -115,7 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 role: "user",
                 parts: [
                   {
-                    text: `Eres VestIA, estilista de moda personal. 
+                    text: `Eres Silvana, estilista de moda personal. 
                     
                     ${contextoUsuario} 
 
@@ -128,8 +198,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                     REGLA DE FORMATO:
                     Cada vez que menciones un producto, escribe su ID así: [PRODUCT_ID: número].
                     
+                    ${imageInlineData ? 'El usuario adjuntó una imagen. Analízala si es relevante.' : ''}
+                    
                     El usuario dice: "${message}"`
-                  }
+                  },
+                  ...(imageInlineData ? [{ inlineData: imageInlineData }] : [])
                 ]
               }
             ]
@@ -139,76 +212,43 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const data = await response.json();
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No entendí.";
-
+      hideThinking();
       addMessage(reply, "bot");
-      detectarFiltros(message);
+      detectFilters(message);
 
     } catch (error) {
       console.error(error);
+      hideThinking();
       addMessage("Error de conexión.", "bot");
     }
   }
 
-  // Manejo de envíos: botón y Enter
-  sendBtn.addEventListener("click", () => {
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(text, "user");
+  // listener envio de mensajes, si hay imagen adjunta, se envia junto con el texto
+  sendBtn.addEventListener("click", async () => {
+    const text = (input.value || "").trim();
+    if (!text && !pendingImageBase64) return; 
+    if (text) addMessage(text, "user");
     input.value = "";
-    mensajeIA(text);
+    const imageData = pendingImageBase64 && pendingImageFile ? { mimeType: pendingImageFile.type, data: pendingImageBase64 } : null;
+    await generateAIResponse(text, imageData);
+    clearAttachment();
   });
 
   input.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendBtn.click();
   });
 
-  // Manejo de Imágenes: al click abrir el selector de archivos
+  // listener al click abrir el selector de archivos
   imageBtn.addEventListener("click", () => imageUpload.click());
 
-  // Cuando hay un archivo seleccionado, lo convertimos a base64 y lo enviamos para que la IA sugiera outfits basados en la imagen.
+  // Al seleccionar una imagen, solo se adjunta sin enviar
   imageUpload.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    addMessage("📷 Analizando prenda...", "user");
-
-    try {
-      const base64 = await toBase64(file);
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { 
-                    text: `Analiza esta imagen. Sugiere un outfit completo usando el siguiente inventario.
-                    IMPORTANTE: Incluye [PRODUCT_ID: numero] después de cada producto sugerido para mostrarlo.
-                    
-                    INVENTARIO:
-                    ${catalogoContexto}` 
-                  },
-                  { inlineData: { mimeType: file.type, data: base64 } }
-                ]
-              }
-            ]
-          })
-        }
-      );
-
-      const data = await response.json();
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude analizar la imagen.";
-      addMessage(reply, "bot");
-    } catch (error) {
-      console.error(error);
-      addMessage("Error analizando imagen.", "bot");
-    }
+    await setAttachment(file);
   });
 
-
+  // Convierte una imagen a base64
   function toBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

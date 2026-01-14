@@ -1,8 +1,7 @@
 import { fetchProducts } from './products.js';
 import { initFilters, getFilters, applyFilters, completeProducts } from './filters.js';
 import { addToCart, initCart } from './cart.js';
-// IMPORTAMOS las funciones de memoria
-import { guardarBusqueda, guardarPreferencias, getPreferencias, getUltimaBusqueda, applyPreferencesToFilters } from './profile.js';
+import { saveSearch, savePreferences, getPreferences, getLastSearch, applyPreferencesToFilters } from './profile.js';
 
 let currentPage = 1;
 const perPage = 12;
@@ -10,29 +9,25 @@ let currentCategory = '';
 let loadedProducts = [];
 let currentQuery = '';
 
+//listener para cargar carrito y guardar preferencias al cambiar los filtros
 document.addEventListener('DOMContentLoaded', async () => {
   // inicializar carrito (persistencia y fallback si API no está disponible)
   await initCart();
 
-  // 2. Restaurar Preferencias Visuales (Selects del HTML)
+  //  Restaurar Preferencias Visuales (Selects del HTML)
   applyPreferencesToFilters(); 
   
-  // 3. Restaurar Estado Interno (Variables JS)
-  const prefs = getPreferencias();
-  const lastSearch = getUltimaBusqueda();
+  const prefs = getPreferences();
+  const lastSearch = getLastSearch();
 
-  // Si había una categoría guardada, la seteamos
+  //mantiene los ultimos filtros usados
   if (prefs.categoria) {
     currentCategory = prefs.categoria;
   }
-  // Si había una búsqueda guardada, la seteamos en la variable y en el input
-  if (lastSearch) {
-    currentQuery = lastSearch;
-    const searchInput = document.getElementById('navSearchInput');
-    if (searchInput) searchInput.value = lastSearch;
-  }
+  
+  
 
-  // 4. Inicializar listeners de filtros
+  //Inicializar listeners de filtros
   initFilters(handleFiltersChange);
   const searchForm = document.getElementById('navSearchForm');
   const searchInput = document.getElementById('navSearchInput');
@@ -41,8 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       currentQuery = (searchInput.value || '').trim();
       
-      // GUARDA LA BÚSQUEDA PARA LA IA
-      guardarBusqueda(currentQuery);
+      // guardar busqueda para uso en chatbox
+      saveSearch(currentQuery);
       
       currentPage = 1;
       showLoadingGrid();
@@ -57,13 +52,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let renderTimer = null;
+// maneja el cambio de filtros y recarga productos
 async function handleFiltersChange(selectedCategory = '', opts = {}) {
   const filtersOnly = !!opts.filtersOnly;
   currentPage = 1;
 
-  // OBTENER Y GUARDAR FILTROS ACTUALES PARA LA IA
+  
   const currentFilters = getFilters();
-  guardarPreferencias({
+
+  savePreferences({
     categoria: selectedCategory || currentFilters.category,
     color: currentFilters.color,
     talla: currentFilters.size,
@@ -85,7 +82,7 @@ async function handleFiltersChange(selectedCategory = '', opts = {}) {
   }, 150);
 }
 
-// ... (El resto de funciones loadData, renderWithFilters, etc. se mantienen igual)
+//hace la carga de productos según categoría y búsqueda actuales
 async function loadData() {
   const data = await fetchProducts({ limit: 300, skip: 0, category: currentCategory, q: currentQuery });
   loadedProducts = completeProducts(data.products);
@@ -146,7 +143,7 @@ function renderProducts(products) {
     grid.appendChild(card);
   });
 }
-
+//renderiza la paginacion
 function renderPagination(total, current) {
   const pagination = document.getElementById('pagination');
   pagination.innerHTML = '';

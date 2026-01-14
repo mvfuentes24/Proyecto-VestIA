@@ -1,23 +1,21 @@
 import { KEY_PREFERENCIAS, KEY_CHAT_HISTORY, KEY_BUSQUEDA } from './config.js';
 
-// guardarBusqueda
-//  Guarda la última búsqueda del usuario en localStorage
-export function guardarBusqueda(termino) {
+// guarda la ultima busqueda realizada
+export function saveSearch(termino) {
   if (!termino) return;
   localStorage.setItem(KEY_BUSQUEDA, termino);
   console.log("Búsqueda guardada para contexto:", termino);
 }
 
-export function getUltimaBusqueda() {
+export function getLastSearch() {
   return localStorage.getItem(KEY_BUSQUEDA) || "";
 }
 
 
-// obtenerContextoActual
-//  Genera un string resumido del estado actual del usuario (última búsqueda y filtros aplicados). 
-export function obtenerContextoActual() {
-  const prefs = getPreferencias();
-  const busqueda = getUltimaBusqueda();
+// genera un texto con el contexto actual del usuario
+export function getCurrentContext() {
+  const prefs = getPreferences();
+  const busqueda = getLastSearch();
 
   let contexto = "CONTEXTO ACTUAL DEL USUARIO EN LA TIENDA:\n";
   
@@ -41,26 +39,24 @@ export function obtenerContextoActual() {
   return contexto;
 }
 
-// guardarPreferencias
-//  Fusiona las preferencias recibidas con las almacenadas
-export function guardarPreferencias(nuevasPreferencias) {
-  const actuales = getPreferencias();
+// guarda las preferencias en localStorage
+export function savePreferences(nuevasPreferencias) {
+  const actuales = getPreferences();
 
   const actualizadas = { ...actuales, ...nuevasPreferencias };
   localStorage.setItem(KEY_PREFERENCIAS, JSON.stringify(actualizadas));
   console.log("Preferencias guardadas:", actualizadas);
 }
 
-export function getPreferencias() {
+export function getPreferences() {
   const stored = localStorage.getItem(KEY_PREFERENCIAS);
   return stored ? JSON.parse(stored) : {};
 }
 
 
-// applyPreferencesToFilters
-//  Lee las preferencias del usuario y las aplica a los selects del DOM
+//  Lee las preferencias del usuario y las aplica a los selects 
 export function applyPreferencesToFilters() {
-  const prefs = getPreferencias();
+  const prefs = getPreferences();
   
   const mapCampos = {
     categoria: "categorySelect",
@@ -78,7 +74,7 @@ export function applyPreferencesToFilters() {
   });
 }
 
-
+//listeners para guardar preferencias al cambiar los filtros
 export function setupFilterListeners() {
   const ids = ["categorySelect", "colorSelect", "sizeSelect", "occasionSelect"];
   
@@ -86,9 +82,9 @@ export function setupFilterListeners() {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener("change", () => {
-        // Mapea el id del select a la clave de preferencia y guarda el valor
+
         const key = id.replace("Select", "").toLowerCase().replace("occasion", "ocasion").replace("category", "categoria").replace("size", "talla");
-        guardarPreferencias({ [key]: el.value });
+        savePreferences({ [key]: el.value });
       });
     }
   });

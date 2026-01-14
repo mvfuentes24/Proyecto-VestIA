@@ -50,7 +50,7 @@ export function completeProducts(products) {
 		occasion: p.occasion || pickOccasion(p, p.id + 3),
 	}));
 }
-
+//aplica los filtros a lista de productos
 export function applyFilters(products, filters) {
 	const { category, color, size, priceMin, priceMax, occasion } = filters;
 	return (products || []).filter(p => {
@@ -102,7 +102,7 @@ export function initFilters(onChange) {
 
 	updatePriceLabels();
 }
-
+//lee los valores actuales de los filtros
 export function getFilters() {
 	const category = document.getElementById('categorySelect')?.value || '';
 	const color = document.getElementById('colorSelect')?.value || '';

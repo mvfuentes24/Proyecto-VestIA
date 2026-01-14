@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 role: "user",
                 parts: [
                   {
-                    text: `Eres VestIA, estilista de moda personal. 
+                    text: `Eres Silvana, estilista de moda personal. 
                     
                     ${contextoUsuario} 
 

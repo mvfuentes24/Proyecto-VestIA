@@ -50,7 +50,7 @@ Proyecto-VestIA/
 
 # Cómo ejecutarlo localmente
 La clave se define en js/config.js en GEMINI_API_KEY. 
-1. Sustituye el valor por tu propia clave de Gemini antes de exponer el proyecto públicamente.
+1. Sustituye el valor por tu propia clave de Gemini (la creas en https://ai.google.dev/ ) antes de exponer el proyecto públicamente.
 2. Haz clic en "Guardar"
 3. Abre el archivo `index.html` en tu navegador
 4. Ya puedes usar la platafroma!! 

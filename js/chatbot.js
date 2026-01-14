@@ -103,12 +103,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (imageUpload) imageUpload.value = "";
   }
 
-  //limpia el formato de los productos en el chat
-  function cleanBasicMarkdown(texto) {
+  // Formatea markdown básico a HTML seguro (negrita, cursiva, código, saltos de línea)
+  function formatMessage(texto) {
     if (!texto) return "";
-    return texto
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/__(.*?)__/g, "$1");
+    let formatted = texto
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Saltos de línea
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    // Negrita **texto**
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Cursiva *texto*
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Código `texto`
+    formatted = formatted.replace(/`(.*?)`/g, '<code>$1</code>');
+
+    return formatted;
   }
 
   // Encuentra tokens y los reemplaza con tarjeta de producto
@@ -137,8 +152,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     msg.className = sender === "user" ? "user-message" : "bot-message";
 
     if (sender === "bot") {
-      const textoLimpio = cleanBasicMarkdown(text);
-      msg.innerHTML = formatResponseWithProducts(textoLimpio);
+      const formatted = formatMessage(text);
+      msg.innerHTML = formatResponseWithProducts(formatted);
     } else {
       msg.textContent = text;
     }
